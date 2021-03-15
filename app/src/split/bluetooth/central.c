@@ -84,8 +84,8 @@ static uint8_t split_central_notify_func(struct bt_conn *conn,
     return BT_GATT_ITER_CONTINUE;
 }
 
-static void split_central_subscribe(struct bt_conn *conn) {
-    int err = bt_gatt_subscribe(conn, &subscribe_params);
+static int split_central_subscribe(struct bt_conn *conn, struct bt_gatt_subscribe_params *params) {
+    int err = bt_gatt_subscribe(conn, params);
     switch (err) {
     case -EALREADY:
         LOG_DBG("[ALREADY SUBSCRIBED]");
@@ -121,12 +121,16 @@ static uint8_t split_central_chrc_discovery_func(struct bt_conn *conn,
         discover_params.start_handle = attr->handle + 2;
         discover_params.type = BT_GATT_DISCOVER_CHARACTERISTIC;
 
-        subscribe_params.disc_params = &sub_discover_params;
-        subscribe_params.end_handle = discover_params.end_handle;
+        #if defined(CONFIG_BT_GATT_AUTO_DISCOVER_CCC)
+            subscribe_params.disc_params = &sub_discover_params;
+            subscribe_params.end_handle = discover_params.end_handle;
+        #endif /* CONFIG_BT_GATT_AUTO_DISCOVER_CCC */
         subscribe_params.value_handle = bt_gatt_attr_value_handle(attr);
         subscribe_params.notify = split_central_notify_func;
         subscribe_params.value = BT_GATT_CCC_NOTIFY;
-        split_central_subscribe(conn);
+        subscribe_params.ccc_handle = attr->handle;
+
+        split_central_subscribe(conn, &subscribe_params);
     }
 
     return subscribe_params.value_handle ? BT_GATT_ITER_STOP : BT_GATT_ITER_CONTINUE;
@@ -190,8 +194,10 @@ static void split_central_process_connection(struct bt_conn *conn) {
 
     bt_conn_get_info(conn, &info);
 
-    LOG_DBG("New connection params: Interval: %d, Latency: %d, PHY: %d", info.le.interval,
-            info.le.latency, info.le.phy->rx_phy);
+    #if defined(CONFIG_BT_USER_PHY_UPDATE)
+        LOG_DBG("New connection params: Interval: %d, Latency: %d, PHY: %d", info.le.interval,
+              info.le.latency, info.le.phy->rx_phy);
+    #endif /* defined(CONFIG_BT_USER_PHY_UPDATE) */
 }
 
 static bool split_central_eir_found(struct bt_data *data, void *user_data) {
