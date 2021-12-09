@@ -31,6 +31,7 @@ static int start_scan(void);
 
 static struct bt_conn *default_conn;
 
+static struct bt_uuid_128 uuid = BT_UUID_INIT_128(ZMK_SPLIT_BT_SERVICE_UUID);
 static const struct bt_uuid_128 split_service_uuid = BT_UUID_INIT_128(ZMK_SPLIT_BT_SERVICE_UUID);
 static struct bt_gatt_discover_params discover_params;
 static struct bt_gatt_subscribe_params subscribe_params;
@@ -143,6 +144,8 @@ static int split_central_subscribe(struct bt_conn *conn, struct bt_gatt_subscrib
         LOG_ERR("Subscribe failed (err %d)", err);
         break;
     }
+
+    return 0;
 }
 
 #if ZMK_KEYMAP_HAS_SENSORS
